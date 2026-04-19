@@ -3,14 +3,19 @@ package com.myapp.todoapp.exception;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.myapp.todoapp.dto.ApiResponse;
 
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -75,5 +80,34 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.error(ex.getMessage()));
+    }
+    
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        Throwable cause = ex.getCause();
+
+        if (cause instanceof InvalidFormatException invalidFormat) {
+            if (invalidFormat.getTargetType() == LocalDate.class) {
+                return ResponseEntity
+                        .badRequest()
+                        .body(ApiResponse.error("Formato de data inválido. Use dd/MM/yyyy (exemplo: 01/01/2026)"));
+            }
+
+            if (invalidFormat.getTargetType().isEnum()) {
+                String fieldName = invalidFormat.getPath().isEmpty()
+                        ? "campo"
+                        : invalidFormat.getPath().get(0).getFieldName();
+                String valoresAceitos = Arrays.stream(invalidFormat.getTargetType().getEnumConstants())
+                        .map(Object::toString)
+                        .collect(Collectors.joining(", "));
+                return ResponseEntity
+                        .badRequest()
+                        .body(ApiResponse.error("Valor inválido para o campo '" + fieldName + "'. Valores aceitos: " + valoresAceitos));
+            }
+        }
+
+        return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.error("Requisição mal formatada"));
     }
 }
