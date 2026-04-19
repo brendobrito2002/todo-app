@@ -36,22 +36,21 @@ public class CategoryController {
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<CategoryResponse>> findById(@PathVariable Long id) {
-        CategoryResponse data = categoryService.findById(id);
+    @GetMapping("/{categoryId}")
+    public ResponseEntity<ApiResponse<CategoryResponse>> findById(@PathVariable Long categoryId) {
+        CategoryResponse data = categoryService.findById(categoryId);
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
-    @PatchMapping("/{id}")
-    public ResponseEntity<ApiResponse<CategoryResponse>> update(@PathVariable Long id,
-                                                                @RequestBody CategoryUpdateRequest request) {
-        CategoryResponse data = categoryService.update(id, request);
+    @PatchMapping("/{categoryId}")
+    public ResponseEntity<ApiResponse<CategoryResponse>> update(@PathVariable Long categoryId, @Valid @RequestBody CategoryUpdateRequest request) {
+        CategoryResponse data = categoryService.update(categoryId, request);
         return ResponseEntity.ok(ApiResponse.success("Categoria atualizada com sucesso", data));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
-        categoryService.delete(id);
+    @DeleteMapping("/{categoryId}")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long categoryId) {
+        categoryService.delete(categoryId);
         return ResponseEntity.ok(ApiResponse.success("Categoria removida com sucesso", null));
     }
 }

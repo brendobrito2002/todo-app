@@ -30,7 +30,6 @@ public class CategoryService {
 
     public CategoryResponse create(CategoryRequest request) {
         User user = authResolver.getAuthenticatedUser();
-
         Category category = Category.builder()
                 .name(request.name())
                 .description(request.description())
