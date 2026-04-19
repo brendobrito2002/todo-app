@@ -7,6 +7,7 @@ import com.myapp.todoapp.model.entity.Category;
 import com.myapp.todoapp.model.entity.Task;
 import com.myapp.todoapp.repository.CategoryRepository;
 import com.myapp.todoapp.repository.TaskRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -23,21 +24,26 @@ public class OwnershipValidator {
 
     public Task validateTaskOwnership(Long taskId, Long userId) {
         Task task = taskRepository.findById(taskId)
-        		.orElseThrow(() -> new TaskNotFoundException("Tarefa não encontrada"));
-        
-        if (!task.getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("Acesso negado à tarefa");
-        }  
-        return task;
+                .orElseThrow(() -> new TaskNotFoundException("Tarefa não encontrada"));
+        if (isAdmin() || task.getUser().getId().equals(userId)) {
+            return task;
+        }
+        throw new AccessDeniedException("Acesso negado à tarefa");
     }
 
     public Category validateCategoryOwnership(Long categoryId, Long userId) {
         Category category = categoryRepository.findById(categoryId)
-        		.orElseThrow(() -> new CategoryNotFoundException("Categoria não encontrada"));
-        
-        if (!category.getUser().getId().equals(userId)) {
-            throw new AccessDeniedException("Acesso negado à categoria");
+                .orElseThrow(() -> new CategoryNotFoundException("Categoria não encontrada"));
+        if (isAdmin() || category.getUser().getId().equals(userId)) {
+            return category;
         }
-        return category;
+        throw new AccessDeniedException("Acesso negado à categoria");
+    }
+
+    private boolean isAdmin() {
+        return SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities()
+                .stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
     }
 }
