@@ -7,6 +7,7 @@ import com.myapp.todoapp.model.enums.Priority;
 import com.myapp.todoapp.model.enums.Status;
 
 public record TaskResponse(
+		Long id,
         String title,
         String description,
         
@@ -19,7 +20,8 @@ public record TaskResponse(
 ) {
     public static TaskResponse from(Task task) {
         return new TaskResponse(
-                task.getTitle(),
+        		task.getId(),
+        		task.getTitle(),
                 task.getDescription(),
                 task.getDueDate(),
                 task.getStatus(),

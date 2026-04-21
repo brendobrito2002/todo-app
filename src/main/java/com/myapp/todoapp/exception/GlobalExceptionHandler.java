@@ -7,6 +7,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.myapp.todoapp.dto.ApiResponse;
@@ -82,32 +83,25 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
     
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
-        Throwable cause = ex.getCause();
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        if (ex.getRequiredType() != null && ex.getRequiredType().isEnum()) {
+            String valoresAceitos = Arrays.stream(ex.getRequiredType().getEnumConstants())
+                    .map(Object::toString)
+                    .collect(Collectors.joining(", "));
+            return ResponseEntity
+                    .badRequest()
+                    .body(ApiResponse.error("Valor inválido para o parâmetro '" + ex.getName() + "'. Valores aceitos: " + valoresAceitos));
+        }
 
-        if (cause instanceof InvalidFormatException invalidFormat) {
-            if (invalidFormat.getTargetType() == LocalDate.class) {
-                return ResponseEntity
-                        .badRequest()
-                        .body(ApiResponse.error("Formato de data inválido. Use dd/MM/yyyy (exemplo: 01/01/2026)"));
-            }
-
-            if (invalidFormat.getTargetType().isEnum()) {
-                String fieldName = invalidFormat.getPath().isEmpty()
-                        ? "campo"
-                        : invalidFormat.getPath().get(0).getFieldName();
-                String valoresAceitos = Arrays.stream(invalidFormat.getTargetType().getEnumConstants())
-                        .map(Object::toString)
-                        .collect(Collectors.joining(", "));
-                return ResponseEntity
-                        .badRequest()
-                        .body(ApiResponse.error("Valor inválido para o campo '" + fieldName + "'. Valores aceitos: " + valoresAceitos));
-            }
+        if (ex.getRequiredType() == LocalDate.class) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(ApiResponse.error("Formato de data inválido para o parâmetro '" + ex.getName() + "'. Use dd/MM/yyyy (exemplo: 01/01/2026)"));
         }
 
         return ResponseEntity
                 .badRequest()
-                .body(ApiResponse.error("Requisição mal formatada"));
+                .body(ApiResponse.error("Valor inválido para o parâmetro '" + ex.getName() + "'"));
     }
 }
