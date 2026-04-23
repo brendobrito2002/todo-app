@@ -59,13 +59,13 @@ public class TaskController {
 	@PatchMapping("/{taskId}")
 	public ResponseEntity<ApiResponse<TaskResponse>> update(@PathVariable Long taskId, @Valid @RequestBody TaskUpdateRequest request){
 		TaskResponse data = taskService.update(taskId, request);
-		return ResponseEntity.ok(ApiResponse.success("Task atualizada com sucesso",data));
+		return ResponseEntity.ok(ApiResponse.success("Tarefa atualizada com sucesso",data));
 	}
 	
 	@DeleteMapping("/{taskId}")
 	public ResponseEntity<ApiResponse<TaskResponse>> delete(@PathVariable Long taskId){
 		taskService.delete(taskId);
-		return ResponseEntity.ok(ApiResponse.success("Task deletada com sucesso", null));
+		return ResponseEntity.ok(ApiResponse.success("Tarefa deletada com sucesso", null));
 	}
 	
 	@GetMapping("/filter/date")
