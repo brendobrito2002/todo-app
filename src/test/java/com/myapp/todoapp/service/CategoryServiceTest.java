@@ -5,6 +5,7 @@ import com.myapp.todoapp.config.security.OwnershipValidator;
 import com.myapp.todoapp.dto.CategoryRequest;
 import com.myapp.todoapp.dto.CategoryResponse;
 import com.myapp.todoapp.dto.CategoryUpdateRequest;
+import com.myapp.todoapp.exception.AccessDeniedException;
 import com.myapp.todoapp.model.entity.Category;
 import com.myapp.todoapp.model.entity.User;
 import com.myapp.todoapp.model.enums.Role;
@@ -110,6 +111,18 @@ class CategoryServiceTest {
         verify(categoryRepository).findByUserId(user.getId());
     }
 
+    @Test
+    @DisplayName("findAll: deve retornar lista vazia quando usuário não tem categorias")
+    void findAll_empty() {
+        when(authResolver.getAuthenticatedUser()).thenReturn(user);
+        when(categoryRepository.findByUserId(user.getId())).thenReturn(List.of());
+
+        List<CategoryResponse> response = categoryService.findAll();
+
+        assertThat(response).isEmpty();
+        verify(categoryRepository).findByUserId(user.getId());
+    }
+
     // findById
 
     @Test
@@ -125,6 +138,18 @@ class CategoryServiceTest {
         assertThat(response.name()).isEqualTo("Trabalho");
 
         verify(ownershipValidator).validateCategoryOwnership(1L, user.getId());
+    }
+
+    @Test
+    @DisplayName("findById: deve lançar exceção quando categoria não pertence ao usuário")
+    void findById_accessDenied() {
+        when(authResolver.getAuthenticatedUser()).thenReturn(user);
+        when(ownershipValidator.validateCategoryOwnership(1L, user.getId()))
+                .thenThrow(new AccessDeniedException("Acesso negado à categoria"));
+
+        assertThatThrownBy(() -> categoryService.findById(1L))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Acesso negado à categoria");
     }
 
     // update
@@ -146,6 +171,22 @@ class CategoryServiceTest {
         verify(categoryRepository).save(category);
     }
 
+    @Test
+    @DisplayName("update: deve lançar exceção quando categoria não pertence ao usuário")
+    void update_accessDenied() {
+        CategoryUpdateRequest request = new CategoryUpdateRequest("Pessoal", null);
+
+        when(authResolver.getAuthenticatedUser()).thenReturn(user);
+        when(ownershipValidator.validateCategoryOwnership(1L, user.getId()))
+                .thenThrow(new AccessDeniedException("Acesso negado à categoria"));
+
+        assertThatThrownBy(() -> categoryService.update(1L, request))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessage("Acesso negado à categoria");
+
+        verify(categoryRepository, never()).save(any());
+    }
+
     // delete
 
     @Test
@@ -164,10 +205,10 @@ class CategoryServiceTest {
     void delete_ownershipFails() {
         when(authResolver.getAuthenticatedUser()).thenReturn(user);
         when(ownershipValidator.validateCategoryOwnership(1L, user.getId()))
-                .thenThrow(new com.myapp.todoapp.exception.AccessDeniedException("Acesso negado à categoria"));
+                .thenThrow(new AccessDeniedException("Acesso negado à categoria"));
 
         assertThatThrownBy(() -> categoryService.delete(1L))
-                .isInstanceOf(com.myapp.todoapp.exception.AccessDeniedException.class)
+                .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Acesso negado à categoria");
 
         verify(categoryRepository, never()).delete(any());

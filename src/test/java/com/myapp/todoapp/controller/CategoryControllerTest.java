@@ -85,7 +85,7 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.data.name").exists());
     }
-
+    
     // GET /api/categories
 
     @Test
@@ -104,6 +104,19 @@ class CategoryControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray())
                 .andExpect(jsonPath("$.data.length()").value(2));
+    }
+
+    @Test
+    @DisplayName("findAll: deve retornar lista vazia quando usuário não tem categorias")
+    @WithMockUser
+    void findAll_empty() throws Exception {
+        when(categoryService.findAll()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/categories"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(0));
     }
 
     // GET /api/categories/{id}
