@@ -5,6 +5,8 @@ import com.myapp.todoapp.dto.CategoryRequest;
 import com.myapp.todoapp.dto.CategoryResponse;
 import com.myapp.todoapp.dto.CategoryUpdateRequest;
 import com.myapp.todoapp.service.CategoryService;
+
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
+@SecurityRequirement(name = "bearerAuth")
 public class CategoryController {
 
     private final CategoryService categoryService;

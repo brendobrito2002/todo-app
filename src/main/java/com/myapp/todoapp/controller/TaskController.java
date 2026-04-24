@@ -24,10 +24,12 @@ import com.myapp.todoapp.model.enums.Priority;
 import com.myapp.todoapp.model.enums.Status;
 import com.myapp.todoapp.service.TaskService;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/tasks")
+@SecurityRequirement(name = "bearerAuth")
 public class TaskController {
 
 	private final TaskService taskService;
