@@ -44,11 +44,11 @@ public class Task {
 	private Priority priority = Priority.MEDIUM;
 	
 	@CreationTimestamp
-	@Column(nullable = false, updatable = false)
+	@Column(name = "created_at",nullable = false, updatable = false)
 	private LocalDateTime createdAt;
 	
 	@UpdateTimestamp
-	@Column(nullable = false)
+	@Column(name = "updated_at",nullable = false)
 	private LocalDateTime updatedAt;
 	
 	@ManyToOne(fetch = FetchType.LAZY)

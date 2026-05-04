@@ -40,11 +40,11 @@ public class User {
 	private Role role = Role.USER;
 	
 	@CreationTimestamp
-	@Column(nullable = false, updatable = false)
+	@Column(name = "created_at",nullable = false, updatable = false)
 	private LocalDateTime createdAt;
-	
+
 	@UpdateTimestamp
-	@Column(nullable = false)
+	@Column(name = "updated_at",nullable = false)
 	private LocalDateTime updatedAt;
 	
 	@OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
