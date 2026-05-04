@@ -1,5 +1,7 @@
 package com.myapp.todoapp.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,6 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
@@ -35,24 +38,34 @@ public class AuthService {
     }
 
     public void register(RegisterRequest request) {
+        log.info("\nTentativa de registro para email: {}", request.email());
+
         if (userRepository.findByEmail(request.email()).isPresent()) {
+            log.warn("\nRegistro falhou - email já em uso: {}", request.email());
             throw new UserAlreadyExistsException("Email já está em uso");
         }
+
         User user = User.builder()
                 .name(request.name())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
                 .role(Role.USER)
                 .build();
+
         userRepository.save(user);
+
+        log.info("\nUsuário registrado com sucesso: {}", request.email());
     }
 
     public LoginResponse login(LoginRequest request) {
+        log.info("\nTentativa de login: {}", request.email());
+
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.email(), request.password())
             );
         } catch (BadCredentialsException e) {
+            log.warn("\nLogin falhou: {}", request.email());
             throw new InvalidCredentialsException("Email ou senha inválidos");
         }
 
@@ -60,6 +73,8 @@ public class AuthService {
                 .orElseThrow(() -> new InvalidCredentialsException("Email ou senha inválidos"));
 
         String accessToken = jwtUtil.generateAccessToken(user);
+
+        log.info("\nLogin bem-sucedido: {}", request.email());
 
         return new LoginResponse(accessToken, "Bearer");
     }
