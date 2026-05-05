@@ -1,24 +1,14 @@
 package com.myapp.todoapp.repository;
 
-import java.time.LocalDate;
-import java.util.List;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import com.myapp.todoapp.model.entity.Task;
-import com.myapp.todoapp.model.enums.Priority;
-import com.myapp.todoapp.model.enums.Status;
 
 @Repository
-public interface TaskRepository extends JpaRepository<Task, Long> {
+public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificationExecutor<Task> {
 	Page<Task> findByUserId(Long userId, Pageable pageable);
-	
-	List<Task> findByUserIdAndDueDate(Long userId, LocalDate dueDate);
-	
-	List<Task> findByUserIdAndStatus(Long userId, Status status);
-	
-	List<Task> findByUserIdAndPriority(Long userId, Priority priority);
 }

@@ -1,7 +1,6 @@
 package com.myapp.todoapp.controller;
 
 import java.time.LocalDate;
-import java.util.List;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -49,8 +48,13 @@ public class TaskController {
 	}
 	
 	@GetMapping
-	public ResponseEntity<ApiResponse<PageResponse<TaskResponse>>> findAll(Pageable pageable){
-	    PageResponse<TaskResponse> data = PageResponse.from(taskService.findAll(pageable));
+	public ResponseEntity<ApiResponse<PageResponse<TaskResponse>>> findAll(
+	        @RequestParam(required = false) Status status,
+	        @RequestParam(required = false) Priority priority,
+	        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dueDate,
+	        Pageable pageable
+	) {
+	    PageResponse<TaskResponse> data = PageResponse.from(taskService.findAllFiltered(status, priority, dueDate, pageable));
 	    return ResponseEntity.ok(ApiResponse.success(data));
 	}
 	
@@ -71,22 +75,4 @@ public class TaskController {
 		taskService.delete(taskId);
 		return ResponseEntity.ok(ApiResponse.success("Tarefa deletada com sucesso", null));
 	}
-	
-	@GetMapping("/filter/date")
-	public ResponseEntity<ApiResponse<List<TaskResponse>>> findByDueDate(@RequestParam @DateTimeFormat(pattern = "dd/MM/yyyy") LocalDate dueDate) {
-	    List<TaskResponse> data = taskService.findByUserIdAndDueDate(dueDate);
-	    return ResponseEntity.ok(ApiResponse.success(data));
-	}
-
-    @GetMapping("/filter/status")
-    public ResponseEntity<ApiResponse<List<TaskResponse>>> findByStatus(@RequestParam Status status) {
-        List<TaskResponse> data = taskService.findByUserIdAndStatus(status);
-        return ResponseEntity.ok(ApiResponse.success(data));
-    }
-
-    @GetMapping("/filter/priority")
-    public ResponseEntity<ApiResponse<List<TaskResponse>>> findByPriority(@RequestParam Priority priority) {
-        List<TaskResponse> data = taskService.findByUserIdAndPriority(priority);
-        return ResponseEntity.ok(ApiResponse.success(data));
-    }
 }

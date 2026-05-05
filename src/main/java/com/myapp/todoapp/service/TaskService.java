@@ -1,10 +1,10 @@
 package com.myapp.todoapp.service;
 
 import java.time.LocalDate;
-import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.myapp.todoapp.config.security.AuthenticatedUserResolver;
@@ -19,6 +19,7 @@ import com.myapp.todoapp.model.entity.User;
 import com.myapp.todoapp.model.enums.Priority;
 import com.myapp.todoapp.model.enums.Status;
 import com.myapp.todoapp.repository.TaskRepository;
+import com.myapp.todoapp.specification.TaskSpecification;
 
 @Service
 public class TaskService {
@@ -90,27 +91,21 @@ public class TaskService {
         taskRepository.delete(task);
     }
     
-    public List<TaskResponse> findByUserIdAndDueDate(LocalDate dueDate){
+    public Page<TaskResponse> findAllFiltered(
+            Status status,
+            Priority priority,
+            LocalDate dueDate,
+            Pageable pageable
+    ) {
         User user = authResolver.getAuthenticatedUser();
-        return taskRepository.findByUserIdAndDueDate(user.getId(), dueDate)
-        		.stream()
-        		.map(TaskResponse::from)
-        		.toList();
-    }
-    
-    public List<TaskResponse> findByUserIdAndStatus(Status status){
-    	User user = authResolver.getAuthenticatedUser();
-    	return taskRepository.findByUserIdAndStatus(user.getId(), status)
-    			.stream()
-    			.map(TaskResponse::from)
-    			.toList();
-    }
-    
-    public List<TaskResponse> findByUserIdAndPriority(Priority priority){
-    	User user = authResolver.getAuthenticatedUser();
-    	return taskRepository.findByUserIdAndPriority(user.getId(), priority)
-    			.stream()
-    			.map(TaskResponse::from)
-    			.toList();
+        Specification<Task> spec = TaskSpecification.filter(
+                user.getId(),
+                status,
+                priority,
+                dueDate
+        );
+
+        return taskRepository.findAll(spec, pageable)
+                .map(TaskResponse::from);
     }
 }
