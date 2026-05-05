@@ -10,6 +10,7 @@ import com.myapp.todoapp.config.security.OwnershipValidator;
 import com.myapp.todoapp.dto.TaskRequest;
 import com.myapp.todoapp.dto.TaskResponse;
 import com.myapp.todoapp.dto.TaskUpdateRequest;
+import com.myapp.todoapp.exception.BusinessException;
 import com.myapp.todoapp.model.entity.Category;
 import com.myapp.todoapp.model.entity.Task;
 import com.myapp.todoapp.model.entity.User;
@@ -64,14 +65,20 @@ public class TaskService {
         User user = authResolver.getAuthenticatedUser();
         Task task = ownershipValidator.validateTaskOwnership(taskId, user.getId());
         
+        if (task.getStatus() == Status.DONE) {
+        	throw new BusinessException("Tarefa concluída não pode ser alterada");
+        }
+        
         if(request.title() != null) task.setTitle(request.title());
         if(request.description() != null) task.setDescription(request.description());
         if(request.dueDate() != null) task.setDueDate(request.dueDate());
         if(request.status() != null) task.setStatus(request.status());
         if(request.priority() != null) task.setPriority(request.priority());
-        if(request.categoryId() != null) {
-        	Category category = ownershipValidator.validateCategoryOwnership(request.categoryId(), user.getId());
-        	task.setCategory(category);
+        if (request.categoryId() != null) {
+            Category category = ownershipValidator.validateCategoryOwnership(request.categoryId(), user.getId());
+            task.setCategory(category);
+        } else if (request.categoryId() == null) {
+            task.setCategory(null);
         }
         
         return TaskResponse.from(taskRepository.save(task));
