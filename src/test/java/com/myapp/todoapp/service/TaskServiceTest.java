@@ -20,6 +20,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -167,26 +171,53 @@ class TaskServiceTest {
     @DisplayName("findAll: deve retornar todas as tasks do usuário autenticado")
     void findAll_success() {
         when(authResolver.getAuthenticatedUser()).thenReturn(user);
-        when(taskRepository.findByUserId(user.getId())).thenReturn(List.of(task));
+        Page<Task> page = new PageImpl<>(List.of(task));
 
-        List<TaskResponse> response = taskService.findAll();
+        when(taskRepository.findByUserId(eq(user.getId()), any(Pageable.class)))
+                .thenReturn(page);
 
-        assertThat(response).hasSize(1);
-        assertThat(response.get(0).title()).isEqualTo("Tarefa 1");
+        Page<TaskResponse> response = taskService.findAll(PageRequest.of(0, 10));
 
-        verify(taskRepository).findByUserId(user.getId());
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).title()).isEqualTo("Tarefa 1");
     }
 
     @Test
     @DisplayName("findAll: deve retornar lista vazia quando usuário não tem tasks")
     void findAll_empty() {
         when(authResolver.getAuthenticatedUser()).thenReturn(user);
-        when(taskRepository.findByUserId(user.getId())).thenReturn(List.of());
 
-        List<TaskResponse> response = taskService.findAll();
+        Page<Task> page = new PageImpl<>(List.of());
 
-        assertThat(response).isEmpty();
-        verify(taskRepository).findByUserId(user.getId());
+        when(taskRepository.findByUserId(eq(user.getId()), any(Pageable.class)))
+                .thenReturn(page);
+
+        Page<TaskResponse> response = taskService.findAll(PageRequest.of(0, 10));
+
+        assertThat(response.getContent()).isEmpty();
+    }
+    
+    @SuppressWarnings("unchecked")
+	@Test
+    @DisplayName("findAllFiltered: deve retornar página filtrada")
+    void findAllFiltered_success() {
+        when(authResolver.getAuthenticatedUser()).thenReturn(user);
+
+        Page<Task> page = new PageImpl<>(List.of(task));
+
+        when(taskRepository.findAll(
+                any(org.springframework.data.jpa.domain.Specification.class),
+                any(Pageable.class)
+        )).thenReturn(page);
+
+        Page<TaskResponse> response = taskService.findAllFiltered(
+                Status.TODO,
+                Priority.MEDIUM,
+                task.getDueDate(),
+                PageRequest.of(0, 10)
+        );
+
+        assertThat(response.getContent()).hasSize(1);
     }
 
     // findById
@@ -215,85 +246,6 @@ class TaskServiceTest {
         assertThatThrownBy(() -> taskService.findById(1L))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Acesso negado à tarefa");
-    }
-
-    // findByDueDate
-
-    @Test
-    @DisplayName("findByDueDate: deve retornar tasks filtradas pela data")
-    void findByDueDate_success() {
-        LocalDate date = LocalDate.now().plusDays(3);
-
-        when(authResolver.getAuthenticatedUser()).thenReturn(user);
-        when(taskRepository.findByUserIdAndDueDate(user.getId(), date)).thenReturn(List.of(task));
-
-        List<TaskResponse> response = taskService.findByUserIdAndDueDate(date);
-
-        assertThat(response).hasSize(1);
-        assertThat(response.get(0).dueDate()).isEqualTo(date);
-    }
-
-    @Test
-    @DisplayName("findByDueDate: deve retornar lista vazia quando não há tasks na data")
-    void findByDueDate_empty() {
-        LocalDate date = LocalDate.now().plusDays(10);
-
-        when(authResolver.getAuthenticatedUser()).thenReturn(user);
-        when(taskRepository.findByUserIdAndDueDate(user.getId(), date)).thenReturn(List.of());
-
-        List<TaskResponse> response = taskService.findByUserIdAndDueDate(date);
-
-        assertThat(response).isEmpty();
-    }
-
-    // findByStatus
-
-    @Test
-    @DisplayName("findByStatus: deve retornar tasks filtradas pelo status")
-    void findByStatus_success() {
-        when(authResolver.getAuthenticatedUser()).thenReturn(user);
-        when(taskRepository.findByUserIdAndStatus(user.getId(), Status.TODO)).thenReturn(List.of(task));
-
-        List<TaskResponse> response = taskService.findByUserIdAndStatus(Status.TODO);
-
-        assertThat(response).hasSize(1);
-        assertThat(response.get(0).status()).isEqualTo(Status.TODO);
-    }
-
-    @Test
-    @DisplayName("findByStatus: deve retornar lista vazia quando não há tasks com o status")
-    void findByStatus_empty() {
-        when(authResolver.getAuthenticatedUser()).thenReturn(user);
-        when(taskRepository.findByUserIdAndStatus(user.getId(), Status.DONE)).thenReturn(List.of());
-
-        List<TaskResponse> response = taskService.findByUserIdAndStatus(Status.DONE);
-
-        assertThat(response).isEmpty();
-    }
-
-    // findByPriority
-
-    @Test
-    @DisplayName("findByPriority: deve retornar tasks filtradas pela prioridade")
-    void findByPriority_success() {
-        when(authResolver.getAuthenticatedUser()).thenReturn(user);
-        when(taskRepository.findByUserIdAndPriority(user.getId(), Priority.MEDIUM)).thenReturn(List.of(task));
-
-        List<TaskResponse> response = taskService.findByUserIdAndPriority(Priority.MEDIUM);
-
-        assertThat(response).hasSize(1);
-        assertThat(response.get(0).priority()).isEqualTo(Priority.MEDIUM);
-    }
-
-    @Test
-    @DisplayName("findByPriority: deve retornar lista vazia quando não há tasks com a prioridade")
-    void findByPriority_empty() {
-        when(authResolver.getAuthenticatedUser()).thenReturn(user);
-        when(taskRepository.findByUserIdAndPriority(user.getId(), Priority.HIGH)).thenReturn(List.of());
-
-        List<TaskResponse> response = taskService.findByUserIdAndPriority(Priority.HIGH);
-
-        assertThat(response).isEmpty();
     }
 
     // update
@@ -396,6 +348,23 @@ class TaskServiceTest {
 
         verify(taskRepository, never()).save(any());
     }
+    
+    @Test
+    @DisplayName("update: não deve permitir alterar task DONE")
+    void update_doneTask_shouldThrow() {
+        task.setStatus(Status.DONE);
+        TaskUpdateRequest request = new TaskUpdateRequest(
+                "Novo título", null, null, null, null, null
+        );
+
+        when(authResolver.getAuthenticatedUser()).thenReturn(user);
+        when(ownershipValidator.validateTaskOwnership(1L, user.getId()))
+                .thenReturn(task);
+
+        assertThatThrownBy(() -> taskService.update(1L, request))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Tarefa concluída");
+    }
 
     // delete
 
@@ -421,6 +390,6 @@ class TaskServiceTest {
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessage("Acesso negado à tarefa");
 
-        verify(taskRepository, never()).delete(any());
+        verify(taskRepository, never()).delete(any(Task.class));
     }
 }

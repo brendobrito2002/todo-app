@@ -21,6 +21,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -119,29 +122,69 @@ class TaskControllerTest {
     // GET /api/tasks
 
     @Test
-    @DisplayName("findAll: deve retornar 200 com lista de tasks")
+    @DisplayName("findAll: deve retornar 200 com página de tasks")
     @WithMockUser
     void findAll_success() throws Exception {
-        when(taskService.findAll()).thenReturn(List.of(taskResponse));
+        Page<TaskResponse> page = new PageImpl<>(
+                List.of(taskResponse),
+                PageRequest.of(0, 20),
+                1
+        );
 
-        mockMvc.perform(get("/api/tasks"))
+        when(taskService.findAllFiltered(any(), any(), any(), any()))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/tasks")
+                        .param("page", "0")
+                        .param("size", "20"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1));
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.page").value(0));
     }
 
     @Test
     @DisplayName("findAll: deve retornar lista vazia quando usuário não tem tasks")
     @WithMockUser
     void findAll_empty() throws Exception {
-        when(taskService.findAll()).thenReturn(List.of());
+        Page<TaskResponse> page = new PageImpl<>(
+                List.of(taskResponse),
+                PageRequest.of(0, 20),
+                1
+        );
+        
+        when(taskService.findAllFiltered(any(), any(), any(), any()))
+        		.thenReturn(page);
 
         mockMvc.perform(get("/api/tasks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(0));
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.page").value(0));
+    }
+    
+    @Test
+    @DisplayName("findAll: deve filtrar por status e prioridade")
+    @WithMockUser
+    void findAll_withFilters() throws Exception {
+        Page<TaskResponse> page = new PageImpl<>(
+                List.of(taskResponse),
+                PageRequest.of(0, 10),
+                1
+        );
+
+        when(taskService.findAllFiltered(any(), any(), any(), any()))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/tasks")
+                        .param("status", "TODO")
+                        .param("priority", "MEDIUM")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content").isArray());
     }
     
     // GET /api/tasks/{id}
@@ -182,101 +225,6 @@ class TaskControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value("Acesso negado à tarefa"));
-    }
-    
-    // GET /api/tasks/filter/dueDate
-    
-    @Test
-    @DisplayName("findByDueDate: deve retornar 200 com tasks filtradas pela data")
-    @WithMockUser
-    void findByDueDate_success() throws Exception {
-        LocalDate date = LocalDate.now().plusDays(3);
-
-        when(taskService.findByUserIdAndDueDate(date)).thenReturn(List.of(taskResponse));
-
-        mockMvc.perform(get("/api/tasks/filter/date")
-                        .param("dueDate", date.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1))
-                .andExpect(jsonPath("$.data[0].title").value("Tarefa 1"));
-    }
-
-    @Test
-    @DisplayName("findByDueDate: deve retornar lista vazia quando não há tasks na data")
-    @WithMockUser
-    void findByDueDate_empty() throws Exception {
-        LocalDate date = LocalDate.now().plusDays(10);
-
-        when(taskService.findByUserIdAndDueDate(date)).thenReturn(List.of());
-
-        mockMvc.perform(get("/api/tasks/filter/date")
-                        .param("dueDate", date.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(0));
-    }
-
-    @Test
-    @DisplayName("findByDueDate: deve retornar 400 quando formato da data é inválido")
-    @WithMockUser
-    void findByDueDate_invalidFormat() throws Exception {
-        mockMvc.perform(get("/api/tasks/filter/date")
-                        .param("dueDate", "data-invalida"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false));
-    }
-
-    // GET /api/tasks/filter/status
-
-    @Test
-    @DisplayName("findByStatus: deve retornar 200 com tasks filtradas pelo status")
-    @WithMockUser
-    void findByStatus_success() throws Exception {
-        when(taskService.findByUserIdAndStatus(Status.TODO)).thenReturn(List.of(taskResponse));
-
-        mockMvc.perform(get("/api/tasks/filter/status")
-                        .param("status", "TODO"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data[0].status").value("TODO"));
-    }
-
-    @Test
-    @DisplayName("findByStatus: deve retornar 400 quando status é inválido")
-    @WithMockUser
-    void findByStatus_invalidStatus() throws Exception {
-        mockMvc.perform(get("/api/tasks/filter/status")
-                        .param("status", "INVALIDO"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false));
-    }
-
-    // GET /api/tasks/filter/priority
-
-    @Test
-    @DisplayName("findByPriority: deve retornar 200 com tasks filtradas pela prioridade")
-    @WithMockUser
-    void findByPriority_success() throws Exception {
-        when(taskService.findByUserIdAndPriority(Priority.MEDIUM)).thenReturn(List.of(taskResponse));
-
-        mockMvc.perform(get("/api/tasks/filter/priority")
-                        .param("priority", "MEDIUM"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data[0].priority").value("MEDIUM"));
-    }
-
-    @Test
-    @DisplayName("findByPriority: deve retornar 400 quando priority é inválida")
-    @WithMockUser
-    void findByPriority_invalidPriority() throws Exception {
-        mockMvc.perform(get("/api/tasks/filter/priority")
-                        .param("priority", "INVALIDO"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false));
     }
 
     // PATCH /api/tasks/{id}

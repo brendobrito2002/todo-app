@@ -17,6 +17,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
@@ -92,31 +94,35 @@ class CategoryControllerTest {
     @DisplayName("findAll: deve retornar 200 com lista de categorias")
     @WithMockUser
     void findAll_success() throws Exception {
-        List<CategoryResponse> response = List.of(
-                new CategoryResponse(1L, "Trabalho", "Tarefas de trabalho"),
-                new CategoryResponse(2L, "Pessoal", "Tarefas pessoais")
-        );
-
-        when(categoryService.findAll()).thenReturn(response);
+    	Page<CategoryResponse> page = new PageImpl<>(
+    	        List.of(
+    	                new CategoryResponse(1L, "Trabalho", "Tarefas de trabalho"),
+    	                new CategoryResponse(2L, "Pessoal", "Tarefas pessoais")
+    	        )
+    	);
+    	
+    	when(categoryService.findAll(any())).thenReturn(page);
 
         mockMvc.perform(get("/api/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(2));
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content.length()").value(2));
     }
 
     @Test
     @DisplayName("findAll: deve retornar lista vazia quando usuário não tem categorias")
     @WithMockUser
     void findAll_empty() throws Exception {
-        when(categoryService.findAll()).thenReturn(List.of());
+    	Page<CategoryResponse> page = new PageImpl<>(List.of());
+
+    	when(categoryService.findAll(any())).thenReturn(page);
 
         mockMvc.perform(get("/api/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(0));
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content.length()").value(0));
     }
 
     // GET /api/categories/{id}

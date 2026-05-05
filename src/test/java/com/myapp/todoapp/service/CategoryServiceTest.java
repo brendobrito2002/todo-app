@@ -17,6 +17,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -100,27 +103,32 @@ class CategoryServiceTest {
     @Test
     @DisplayName("findAll: deve retornar todas as categorias do usuário autenticado")
     void findAll_success() {
-        when(authResolver.getAuthenticatedUser()).thenReturn(user);
-        when(categoryRepository.findByUserId(user.getId())).thenReturn(List.of(category));
+    	Page<Category> page = new PageImpl<>(List.of(category));
 
-        List<CategoryResponse> response = categoryService.findAll();
+    	when(authResolver.getAuthenticatedUser()).thenReturn(user);
+    	when(categoryRepository.findByUserId(eq(user.getId()), any(Pageable.class))).thenReturn(page);
 
-        assertThat(response).hasSize(1);
-        assertThat(response.get(0).name()).isEqualTo("Trabalho");
+    	Page<CategoryResponse> response = categoryService.findAll(Pageable.unpaged());
 
-        verify(categoryRepository).findByUserId(user.getId());
+    	assertThat(response.getContent()).hasSize(1);
+    	assertThat(response.getContent().get(0).name()).isEqualTo("Trabalho");
+
+    	verify(categoryRepository).findByUserId(eq(user.getId()), any(Pageable.class));
     }
 
     @Test
     @DisplayName("findAll: deve retornar lista vazia quando usuário não tem categorias")
     void findAll_empty() {
-        when(authResolver.getAuthenticatedUser()).thenReturn(user);
-        when(categoryRepository.findByUserId(user.getId())).thenReturn(List.of());
+    	Page<Category> page = new PageImpl<>(List.of());
 
-        List<CategoryResponse> response = categoryService.findAll();
+    	when(authResolver.getAuthenticatedUser()).thenReturn(user);
+    	when(categoryRepository.findByUserId(eq(user.getId()), any(Pageable.class))).thenReturn(page);
 
-        assertThat(response).isEmpty();
-        verify(categoryRepository).findByUserId(user.getId());
+    	Page<CategoryResponse> response = categoryService.findAll(Pageable.unpaged());
+
+    	assertThat(response.getContent()).isEmpty();
+
+    	verify(categoryRepository).findByUserId(eq(user.getId()), any(Pageable.class));
     }
 
     // findById

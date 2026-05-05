@@ -65,23 +65,21 @@ public class TaskService {
     public TaskResponse update(Long taskId, TaskUpdateRequest request) {
         User user = authResolver.getAuthenticatedUser();
         Task task = ownershipValidator.validateTaskOwnership(taskId, user.getId());
-        
+
         if (task.getStatus() == Status.DONE) {
-        	throw new BusinessException("Tarefa concluída não pode ser alterada");
+            throw new BusinessException("Tarefa concluída não pode ser alterada");
         }
-        
-        if(request.title() != null) task.setTitle(request.title());
-        if(request.description() != null) task.setDescription(request.description());
-        if(request.dueDate() != null) task.setDueDate(request.dueDate());
-        if(request.status() != null) task.setStatus(request.status());
-        if(request.priority() != null) task.setPriority(request.priority());
+
+        if (request.title() != null) task.setTitle(request.title());
+        if (request.description() != null) task.setDescription(request.description());
+        if (request.dueDate() != null) task.setDueDate(request.dueDate());
+        if (request.status() != null) task.setStatus(request.status());
+        if (request.priority() != null) task.setPriority(request.priority());
         if (request.categoryId() != null) {
-            Category category = ownershipValidator.validateCategoryOwnership(request.categoryId(), user.getId());
+            Category category = ownershipValidator.validateCategoryOwnership(request.categoryId(),user.getId());
             task.setCategory(category);
-        } else if (request.categoryId() == null) {
-            task.setCategory(null);
         }
-        
+
         return TaskResponse.from(taskRepository.save(task));
     }
     
