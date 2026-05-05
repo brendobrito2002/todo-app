@@ -4,15 +4,16 @@ import com.myapp.todoapp.dto.ApiResponse;
 import com.myapp.todoapp.dto.CategoryRequest;
 import com.myapp.todoapp.dto.CategoryResponse;
 import com.myapp.todoapp.dto.CategoryUpdateRequest;
+import com.myapp.todoapp.dto.PageResponse;
 import com.myapp.todoapp.service.CategoryService;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
+
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
@@ -34,8 +35,8 @@ public class CategoryController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CategoryResponse>>> findAll() {
-        List<CategoryResponse> data = categoryService.findAll();
+    public ResponseEntity<ApiResponse<PageResponse<CategoryResponse>>> findAll(Pageable pageable){
+        PageResponse<CategoryResponse> data = PageResponse.from(categoryService.findAll(pageable));
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 

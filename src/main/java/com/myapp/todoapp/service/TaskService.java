@@ -3,6 +3,8 @@ package com.myapp.todoapp.service;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.myapp.todoapp.config.security.AuthenticatedUserResolver;
@@ -48,12 +50,10 @@ public class TaskService {
         return TaskResponse.from(taskRepository.save(task));
     }
     
-    public List<TaskResponse> findAll(){
-    	User user = authResolver.getAuthenticatedUser();
-    	return taskRepository.findByUserId(user.getId())
-    			.stream()
-    			.map(TaskResponse::from)
-    			.toList();
+    public Page<TaskResponse> findAll(Pageable pageable) {
+        User user = authResolver.getAuthenticatedUser();
+        return taskRepository.findByUserId(user.getId(), pageable)
+                .map(TaskResponse::from);
     }
     
     public TaskResponse findById(Long taskId) {

@@ -3,6 +3,7 @@ package com.myapp.todoapp.controller;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.myapp.todoapp.dto.ApiResponse;
+import com.myapp.todoapp.dto.PageResponse;
 import com.myapp.todoapp.dto.TaskRequest;
 import com.myapp.todoapp.dto.TaskResponse;
 import com.myapp.todoapp.dto.TaskUpdateRequest;
@@ -47,9 +49,9 @@ public class TaskController {
 	}
 	
 	@GetMapping
-	public ResponseEntity<ApiResponse<List<TaskResponse>>> findAll(){
-		List<TaskResponse> data = taskService.findAll();
-		return ResponseEntity.ok(ApiResponse.success(data));
+	public ResponseEntity<ApiResponse<PageResponse<TaskResponse>>> findAll(Pageable pageable){
+	    PageResponse<TaskResponse> data = PageResponse.from(taskService.findAll(pageable));
+	    return ResponseEntity.ok(ApiResponse.success(data));
 	}
 	
 	@GetMapping("/{taskId}")

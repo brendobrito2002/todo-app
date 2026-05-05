@@ -1,7 +1,7 @@
 package com.myapp.todoapp.service;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.myapp.todoapp.config.security.AuthenticatedUserResolver;
@@ -39,12 +39,10 @@ public class CategoryService {
         return CategoryResponse.from(categoryRepository.save(category));
     }
 
-    public List<CategoryResponse> findAll() {
+    public Page<CategoryResponse> findAll(Pageable pageable) {
         User user = authResolver.getAuthenticatedUser();
-        return categoryRepository.findByUserId(user.getId())
-                .stream()
-                .map(CategoryResponse::from)
-                .toList();
+        return categoryRepository.findByUserId(user.getId(), pageable)
+                .map(CategoryResponse::from);
     }
 
     public CategoryResponse findById(Long categoryId) {
